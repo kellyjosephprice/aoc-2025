@@ -1,13 +1,19 @@
-export const getPrefix = (string: string, affinityUp: boolean = true) => {
-  // up: 783 => 1000 (10 ** length)
-  // down: 783 => 99 (10 ** (length - 1) - 1)
-  if (string.length % 2 === 1) {
-    string = (
-      affinityUp ? 10 ** string.length : 10 ** (string.length - 1) - 1
-    ).toString(10);
+const hasPattern = (num: number): boolean => {
+  const str = num.toString(10);
+  const maxFactor = Math.floor(str.length / 2);
+  let found = false;
+
+  for (let i = 1; i <= maxFactor; i++) {
+    const substr = str.slice(0, i);
+    const pattern = substr.repeat(Math.floor(str.length / i));
+
+    if (pattern === str) {
+      found = true;
+      break;
+    }
   }
 
-  return parseInt(string.slice(0, string.length / 2));
+  return found;
 };
 
 export const getIds = (ranges: string[]): number[] => {
@@ -17,17 +23,26 @@ export const getIds = (ranges: string[]): number[] => {
     const [minString, maxString] = string.split("-");
     const [min, max] = [minString, maxString].map((str) => parseInt(str));
 
-    const prefix = getPrefix(minString);
-    const maxPrefix = getPrefix(maxString, false);
-
-    for (let i = prefix; i <= maxPrefix; i++) {
-      const badId = i * 10 ** i.toString(10).length + i;
-
-      if (min <= badId && badId <= max) {
-        ids.push(badId);
+    for (let i = min; i <= max; i++) {
+      if (hasPattern(i)) {
+        ids.push(i);
       }
     }
   });
 
   return ids;
 };
+
+// n = 3
+// 111
+// 222
+// 333
+//
+// 1111
+// 1010
+//
+// 11111
+//
+// 111111
+// 101010
+// 100100
