@@ -10,19 +10,19 @@ const distance3d = (a: Coord, b: Coord) =>
   Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
 
 export const lightCircuits = (input: string, count: number): number => {
-  const coords: Coord[] = input
+  const junctions: Coord[] = input
     .trim()
     .split("\n")
     .map((str) => str.split(",").map((n) => parseInt(n)) as Coord);
 
-  const connections: Connection[] = coords
-    .reduce<Connection[]>((memo, coord, index) => {
-      for (let j = index + 1; j < coords.length; j++) {
-        let distance = distance3d(coord, coords[j]);
+  const connections: Connection[] = junctions
+    .reduce<Connection[]>((memo, junction, index) => {
+      for (let j = index + 1; j < junctions.length; j++) {
+        let distance = distance3d(junction, junctions[j]);
         memo.push({
           distance,
-          a: coord,
-          b: coords[j],
+          a: junction,
+          b: junctions[j],
         });
       }
 
@@ -30,51 +30,54 @@ export const lightCircuits = (input: string, count: number): number => {
     }, [])
     .sort((a, b) => a.distance - b.distance);
 
-  const unconnected = count === -1 ? connections : connections.slice(0, count);
+  const circuits: Set<Coord>[] = [];
+  const unconnected = connections.slice(0, count);
+  let last: Connection | undefined = undefined;
 
-  const circuits = [];
-  let last = unconnected[0];
-  while (unconnected.length > 0) {
-    const current = unconnected.shift();
-    if (typeof current === "undefined") {
-      throw new Error("typescript and shift");
+  for (let index = 0; index < unconnected.length; index++) {
+    const connection = unconnected[index];
+
+    if (circuits.length === 0) {
+      circuits.push(new Set([connection.a, connection.b]));
+      continue;
     }
 
-    const coords = new Set([current.a, current.b]);
-    const circuit = new Set([current.a, current.b]);
+    let aCircuit: number | undefined = undefined;
+    let bCircuit: number | undefined = undefined;
 
-    console.log(current.distance);
-
-    while (coords.size > 0) {
-      [...coords.values()].forEach((coord) => {
-        const indices: number[] = [];
-
-        unconnected.forEach((conn, index) => {
-          if (conn.a === coord || conn.b === coord) {
-            coords.add(conn.a);
-            coords.add(conn.b);
-            circuit.add(conn.a);
-            circuit.add(conn.b);
-
-            indices.unshift(index);
-            last = conn;
-          }
-        });
-
-        indices.forEach((idx) => unconnected.splice(idx, 1));
-        coords.delete(coord);
-      });
+    for (let i = 0; i < circuits.length; i++) {
+      if (circuits[i].has(connection.a)) {
+        aCircuit = i;
+      }
+      if (circuits[i].has(connection.b)) {
+        bCircuit = i;
+      }
     }
 
-    circuits.push(circuit);
+    if (typeof aCircuit === "undefined" && typeof bCircuit === "undefined") {
+      circuits.push(new Set([connection.a, connection.b]));
+    } else if (typeof bCircuit === "undefined") {
+      // @ts-expect-error
+      circuits[aCircuit].add(connection.b);
+    } else if (typeof aCircuit === "undefined") {
+      circuits[bCircuit].add(connection.a);
+    } else if (aCircuit !== bCircuit) {
+      circuits[aCircuit] = circuits[aCircuit].union(circuits[bCircuit]);
+      circuits.splice(bCircuit, 1);
+    }
+
+    if (circuits[0].size === junctions.length) {
+      last = connection;
+      break;
+    }
   }
 
-  console.log(circuits, last);
   if (count === -1) {
     if (typeof last === "undefined") {
       throw new Error("ooph");
     }
 
+    console.log(last);
     return last.a[0] * last.b[0];
   } else {
     return circuits

@@ -4,6 +4,6 @@ import { lightCircuits } from "./lib.ts";
 
 const input = fs.readFileSync("./input.txt", { encoding: "utf8" });
 
-const count = lightCircuits(input, 1000, true);
+const count = lightCircuits(input, -1);
 
 console.log(count);
